@@ -24,6 +24,8 @@ left_back_wheel = encoder_motor_class("M1", "INDEX1")
 right_back_wheel = encoder_motor_class("M6", "INDEX1")
 
 MAX_SPEED = 255
+SPEED_MULTIPLIER = 1
+
 led = led_matrix_class("PORT2", "INDEX1")
 
 # Hello ChatGPT
@@ -83,7 +85,7 @@ class util:
 
 """
 For more information and explanation, please visit:
-https://github.com/neumann-lab/holonomic-mecanum
+https://github.com/neumann-lab/holonomic-mecanum/
 """
 class holonomic:        
     pids = {
@@ -93,21 +95,44 @@ class holonomic:
         "rb": PID(Kp=1, Ki=0, Kd=0),
     }
     
-    # PID ready
-    def drive(vx, vy, wL, pid=True):
-        wL *= 0.8
-        vFL = (vx + vy + wL) * 1.5
-        vFR = (-(vx) + vy - wL) * 1.5
-        vBL = (-(vx) + vy + wL) * 1.5
-        vBR = (vx + vy - wL) * 1.5
-        # led.show(vFL, wait=False)        
-
-        # PID
+    """
+    Holonomic driving system for mecanum.
+    vx, the desired x velocity
+    vy, the desired y velocity
+    wL, the desired angular velocity
+    deadzone, the deadzone where the value lower than this value will be set to 0
+    pid, enable pid control
+    """
+    def drive(vx, vy, wL, deadzone=5, pid=True):
+        global SPEED_MULTIPLIER
+        # Create a deadzone so that if the joystick isn't moved perfectly,
+        # the controller can still make the robot move perfectly.
+        if vx < math.fabs(deadzone):
+            vx = 0
+        if vy < math.fabs(deadzone):
+            vy = 0
+        if wL < math.fabs(deadzone):
+            wL = 0
+            
+        # Calculation for the wheel speed
+        # Visit https://github.com/neumann-lab/holonomic-mecanum/blob/main/th.md for the formula
+        vFL = (vx + vy + wL) * SPEED_MULTIPLIER
+        vFR = (-(vx) + vy - wL) * SPEED_MULTIPLIER
+        vBL = (-(vx) + vy + wL) * SPEED_MULTIPLIER
+        vBR = (vx + vy - wL) * SPEED_MULTIPLIER
+        
+        # Sliding check to not interfere with the normal movement, incase of tuning specific power
+        if math.fabs(vx) > math.fabs(vy):
+            vBR *= 0.8
+        
+        # A PID implemention.
+        # Reminder: This will significantly delay your movement.
+        # Please only use this option only when you need a precise movement.
+        # For example: Automatic Stage.
         if pid:            
             # Left Forward
             holonomic.pids["lf"].set_setpoint(vFL)
             vFL = holonomic.pids["lf"].update(-left_forward_wheel.get_value("speed"))
-            # led.show(vFL, wait=False)
             # Left Back
             holonomic.pids["lb"].set_setpoint(vBL)
             vBL = holonomic.pids["lb"].update(-left_back_wheel.get_value("speed"))
