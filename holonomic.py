@@ -107,11 +107,11 @@ class holonomic:
         global SPEED_MULTIPLIER
         # Create a deadzone so that if the joystick isn't moved perfectly,
         # the controller can still make the robot move perfectly.
-        if vx < math.fabs(deadzone):
+        if math.fabs(vx) < math.fabs(deadzone):
             vx = 0
-        if vy < math.fabs(deadzone):
+        if math.fabs(vy) < math.fabs(deadzone):
             vy = 0
-        if wL < math.fabs(deadzone):
+        if math.fabs(wL) < math.fabs(deadzone):
             wL = 0
             
         # Calculation for the wheel speed
